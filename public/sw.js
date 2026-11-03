@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pokequiz-v2';
+const CACHE_NAME = 'pokequiz-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
