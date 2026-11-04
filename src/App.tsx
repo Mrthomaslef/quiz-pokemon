@@ -180,7 +180,8 @@ export default function App() {
     pointerStartX.current = null;
   };
 
-  // Keyboard support (Left, Right, Space, Enter)
+  // Keyboard support (Left, Right, Space, Enter) & Trackpad/Mouse Wheel support on Mac/Desktop
+  const lastWheelRef = useRef<number>(0);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
@@ -191,8 +192,26 @@ export default function App() {
         triggerStep('right');
       }
     };
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) return;
+      const scEl = document.scrollingElement || document.documentElement;
+      // Si la fenêtre est petite et que la page peut défiler verticalement, laisser le scroll natif agir
+      if (scEl && scEl.scrollHeight > scEl.clientHeight + 8 && Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
+        return;
+      }
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(delta) < 28) return;
+      const now = Date.now();
+      if (now - lastWheelRef.current < 420) return;
+      lastWheelRef.current = now;
+      triggerStep(delta > 0 ? 'left' : 'right');
+    };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('wheel', handleWheel);
+    };
   }, [triggerStep]);
 
   // Compute card transform during swipe or exit
@@ -225,7 +244,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-[100dvh] w-full overflow-hidden bg-slate-950 text-slate-100 flex flex-col pokeball-bg app-safe-area select-none">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-slate-950 text-slate-100 flex flex-col pokeball-bg app-safe-area select-none">
       {/* Minimal Top Bar */}
       <header className="shrink-0 max-w-2xl w-full mx-auto px-2 py-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -301,7 +320,7 @@ export default function App() {
             onPointerUp={handlePointerEnd}
             onPointerCancel={handlePointerEnd}
             style={getCardStyle()}
-            className="flex-1 min-h-0 w-full rounded-3xl bg-gradient-to-b from-slate-800/70 via-slate-900/90 to-slate-950 border-2 border-slate-800/90 shadow-2xl p-4 sm:p-6 flex flex-col items-center justify-between relative overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+            className="flex-1 min-h-0 w-full rounded-3xl bg-gradient-to-b from-slate-800/70 via-slate-900/90 to-slate-950 border-2 border-slate-800/90 shadow-2xl p-4 sm:p-6 flex flex-col items-center justify-between relative overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
           >
             {/* Background glow */}
             <div
